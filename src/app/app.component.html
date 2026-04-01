@@ -1,0 +1,102 @@
+<div class="theme-wrapper" [class.dark-mode]="isDarkMode()">
+  <div class="container">
+    <div class="header">
+      <h1>AV Parser Web</h1>
+      
+      <div class="toggle-container">
+        <span class="toggle-label">{{ isDarkMode() ? 'Dark' : 'Light' }} Mode</span>
+        <label class="switch">
+          <input type="checkbox" (change)="toggleTheme()" [checked]="isDarkMode()">
+          <span class="slider round"></span>
+        </label>
+      </div>
+    </div>
+    
+    <p>
+      {{ isDarkMode() ? 'Ready to parse in the shadows? Submit a YouTube URL below.' : 'Submit a YouTube URL for processing via MQTT.' }}
+    </p>
+
+    <div class="card main-card">
+      <div class="status-badge" [ngClass]="mqtt.status()">
+        MQTT: {{ mqtt.status() }}
+      </div>
+
+      <form (ngSubmit)="onSubmit()" #parserForm="ngForm">
+        <div class="form-group">
+          <label for="youtubeUrl">YouTube URL</label>
+          <input 
+            type="text" 
+            id="youtubeUrl" 
+            name="youtubeUrl" 
+            [(ngModel)]="url" 
+            required 
+            placeholder="https://www.youtube.com/watch?v=..."
+            #urlInput="ngModel"
+          />
+          @if (urlInput.touched && !isValidUrl()) {
+            <small class="error-text">Please enter a valid YouTube URL.</small>
+          }
+        </div>
+
+        <div class="form-group">
+          <label>Parse Option</label>
+          <div class="radio-group">
+            <label>
+              <input type="radio" name="parseType" value="video" [(ngModel)]="parseType"> Video
+            </label>
+            <label>
+              <input type="radio" name="parseType" value="audio" [(ngModel)]="parseType"> Audio
+            </label>
+          </div>
+        </div>
+
+        <button 
+          type="submit" 
+          [disabled]="!isValidUrl() || mqtt.status() !== 'connected'"
+          [class.loading]="isSubmitting()"
+        >
+          {{ isSubmitting() ? 'Sending...' : 'Process' }}
+        </button>
+      </form>
+
+      @if (lastMessage()) {
+        <div class="success-message">
+          ✅ Request sent successfully!
+        </div>
+      }
+    </div>
+
+    <!-- Jobs History Dropdown -->
+    <div class="history-section">
+      <button class="history-toggle" (click)="toggleHistory()">
+        <span>{{ showHistory() ? '▼' : '▶' }} Job History (Last 7 Days)</span>
+        @if (isLoadingJobs()) {
+          <span class="loader-small"></span>
+        }
+      </button>
+
+      @if (showHistory()) {
+        <div class="history-dropdown card">
+          @if (jobs().length === 0) {
+            <div class="empty-state">No jobs found in the last 7 days.</div>
+          } @else {
+            <div class="job-list">
+              @for (job of jobs(); track job.id) {
+                <div class="job-item">
+                  <div class="job-info">
+                    <span class="job-name">{{ job.name || 'Unnamed Video' }}</span>
+                    <a [href]="job.link" target="_blank" class="job-link">View Original</a>
+                  </div>
+                  <div class="job-meta">
+                    <span class="job-status" [attr.data-status]="job.status">{{ job.status }}</span>
+                    <span class="job-date">{{ job.timestamp | date:'short' }}</span>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>

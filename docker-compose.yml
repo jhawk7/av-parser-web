@@ -1,0 +1,19 @@
+services:
+  web:
+    build:
+      context: .
+    image: jhawk7/av-parser-web:latest
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      # These variables must match what entrypoint.sh expects
+      - MQTT_URL=${MQTT_URL}
+      - MQTT_CLIENT_ID=${MQTT_CLIENT_ID}
+      - MQTT_USER=${MQTT_USER}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+      - MQTT_TOPIC=${MQTT_TOPIC}
+      - API_URL=${API_URL}
+    restart: unless-stopped
+    user: "101"

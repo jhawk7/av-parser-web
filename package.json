@@ -1,0 +1,35 @@
+{
+  "name": "av-parser-web",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "prestart": "tsx scripts/set-env.ts",
+    "start": "ng serve",
+    "prebuild": "tsx scripts/set-env.ts",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test"
+  },
+  "private": true,
+  "packageManager": "pnpm@10.18.1",
+  "dependencies": {
+    "@angular/common": "^21.2.0",
+    "@angular/compiler": "^21.2.0",
+    "@angular/core": "^21.2.0",
+    "@angular/forms": "^21.2.0",
+    "@angular/platform-browser": "^21.2.0",
+    "@angular/router": "^21.2.0",
+    "mqtt": "^5.15.1",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^21.2.5",
+    "@angular/cli": "^21.2.5",
+    "@angular/compiler-cli": "^21.2.0",
+    "dotenv": "^17.3.1",
+    "prettier": "^3.8.1",
+    "tsx": "^4.21.0",
+    "typescript": "~5.9.2"
+  }
+}
