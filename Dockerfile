@@ -30,9 +30,10 @@ COPY --from=build /app/dist/av-parser-web/browser /usr/share/nginx/html
 # Copy the entrypoint script
 COPY entrypoint.sh /entrypoint.sh
 
-# Use root temporarily to set script permissions
+# Use root temporarily to set permissions
 USER root
-RUN chmod +x /entrypoint.sh
+RUN chmod +x /entrypoint.sh && \
+    chown -R 101:101 /usr/share/nginx/html
 USER 101
 
 # The unprivileged image listens on 8080 by default

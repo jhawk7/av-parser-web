@@ -3,6 +3,7 @@ services:
     build:
       context: .
     image: jhawk7/av-parser-web:latest
+    container_name: av-parser-web
     ports:
       - "8080:8080"
     env_file:

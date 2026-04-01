@@ -24,12 +24,12 @@ A simple Angular standalone application that allows users to submit YouTube URLs
 The application uses environment variables for configuration. Create a `.env` file in the root directory:
 
 ```env
-MQTT_URL=ws://localhost:1833/mqtt
-MQTT_CLIENT_ID=av-parser-web-dev
+MQTT_URL=
+MQTT_CLIENT_ID=
 MQTT_USER=
 MQTT_PASSWORD=
-MQTT_TOPIC=yt-parser/jobs
-API_URL=http://localhost:3000/api/jobs
+MQTT_TOPIC=
+API_URL=
 ```
 
 > **Note**: For browser compatibility, `MQTT_URL` must use the WebSocket protocol (`ws://` or `wss://`).

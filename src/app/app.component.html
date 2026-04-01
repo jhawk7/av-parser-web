@@ -84,16 +84,20 @@
               @for (job of jobs(); track job.id) {
                 <div class="job-item">
                   <div class="job-info">
-                    <span class="job-name">{{ job.name || 'Unnamed Video' }}</span>
-                    <a [href]="job.link" target="_blank" class="job-link">View Original</a>
+                    <div class="job-header-row">
+                      <span class="job-type-badge">{{ job.type }}</span>
+                      <span class="job-id">ID: {{ job.id.substring(0, 8) }}</span>
+                    </div>
+                    <a [href]="job.url" target="_blank" class="job-link" [title]="job.url">{{ job.url }}</a>
                   </div>
                   <div class="job-meta">
                     <span class="job-status" [attr.data-status]="job.status">{{ job.status }}</span>
-                    <span class="job-date">{{ job.timestamp | date:'short' }}</span>
+                    <span class="job-date">{{ job.timestamp | date:'mediumTime' }} · {{ job.timestamp | date:'MMM d' }}</span>
                   </div>
                 </div>
               }
             </div>
+
           }
         </div>
       }

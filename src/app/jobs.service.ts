@@ -6,6 +6,7 @@ import { CONFIG } from './config';
 export interface Job {
   id: string;
   url: string;
+  type: 'video' | 'audio';
   status: 'pending' | 'completed' | 'failed';
   timestamp: string;
 }

@@ -147,21 +147,48 @@ p { color: #666; margin-bottom: 24px; transition: color 0.3s; }
 
 .job-info {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 6px;
+  flex-direction: column;
+  margin-bottom: 8px;
 }
 
-.job-name {
-  font-weight: 500;
-  font-size: 14px;
-  color: #333;
+.job-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.job-type-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #e7f5ff;
+  color: #1971c2;
+}
+
+.dark-mode .job-type-badge {
+  background: rgba(25, 113, 194, 0.2);
+  color: #74c0fc;
+}
+
+.job-id {
+  font-size: 10px;
+  color: #adb5bd;
+  font-family: monospace;
 }
 
 .job-link {
   font-size: 11px;
   color: #339af0;
   text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
 }
 
 .job-meta {
@@ -181,7 +208,6 @@ p { color: #666; margin-bottom: 24px; transition: color 0.3s; }
 }
 
 .job-status[data-status="pending"] { background: #e9ecef; color: #495057; }
-.job-status[data-status="processing"] { background: #fff9db; color: #f08c00; }
 .job-status[data-status="completed"] { background: #e6fcf5; color: #099268; }
 .job-status[data-status="failed"] { background: #fff5f5; color: #fa5252; }
 
@@ -217,7 +243,6 @@ p { color: #666; margin-bottom: 24px; transition: color 0.3s; }
 .dark-mode .job-status { background: #373a40; color: #c1c2c5; }
 .dark-mode .job-status[data-status="completed"] { background: rgba(9, 146, 104, 0.2); color: #63e6be; }
 .dark-mode .job-status[data-status="failed"] { background: rgba(250, 82, 82, 0.2); color: #ff8787; }
-.dark-mode .job-status[data-status="processing"] { background: rgba(240, 140, 0, 0.2); color: #ffd43b; }
 
 .dark-mode label { color: #c1c2c5; }
 .dark-mode input[type="text"] {
