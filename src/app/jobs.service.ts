@@ -11,13 +11,17 @@ export interface Job {
   timestamp: string;
 }
 
+export interface JobResponse {
+  response: Job[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class JobsService {
   private http = inject(HttpClient);
 
-  getJobs(): Observable<Job[]> {
-    return this.http.get<Job[]>(CONFIG.apiUrl);
+  getJobs(): Observable<JobResponse> {
+    return this.http.get<JobResponse>(CONFIG.apiUrl);
   }
 }

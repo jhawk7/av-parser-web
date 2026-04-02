@@ -27,6 +27,9 @@ FROM nginxinc/nginx-unprivileged:alpine
 # Copy built files from Stage 1
 COPY --from=build /app/dist/av-parser-web/browser /usr/share/nginx/html
 
+# Copy custom nginx config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 # Copy the entrypoint script
 COPY entrypoint.sh /entrypoint.sh
 

@@ -35,7 +35,7 @@ export class App implements OnInit {
     this.isLoadingJobs.set(true);
     this.jobsService.getJobs().subscribe({
       next: (data) => {
-        this.jobs.set(data);
+        this.jobs.set(data.response);
         this.isLoadingJobs.set(false);
       },
       error: (err) => {
@@ -67,7 +67,6 @@ export class App implements OnInit {
       const payload = {
         url: this.url,
         type: this.parseType,
-        timestamp: Date.now()
       };
 
       this.mqtt.publish(CONFIG.mqtt.topic, payload);
