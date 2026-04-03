@@ -207,7 +207,7 @@ p { color: #666; margin-bottom: 24px; transition: color 0.3s; }
   color: #495057;
 }
 
-.job-status[data-status="pending"] { background: #e9ecef; color: #495057; }
+.job-status[data-status="pending"] { background: #fff4e6; color: #fd7e14; }
 .job-status[data-status="completed"] { background: #e6fcf5; color: #099268; }
 .job-status[data-status="failed"] { background: #fff5f5; color: #fa5252; }
 
