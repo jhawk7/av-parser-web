@@ -28,6 +28,8 @@ FROM node:22-slim
 RUN npm install -g pnpm
 
 WORKDIR /app
+# Change the ownership of the /app directory to the node user
+RUN chown node:node /app
 
 # Copy built application and server code
 # We use --chown to ensure the files are owned by the node user
