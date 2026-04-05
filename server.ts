@@ -10,6 +10,7 @@ dotenv.config();
 const app = express();
 const port = process.env['PORT'] || 8080;
 const distPath = join(process.cwd(), 'dist/av-parser-web/browser');
+const apiUrl = process.env['API_URL'] || 'http://localhost:3000/api/jobs';
 
 app.use(cors());
 app.use(express.json());
@@ -69,53 +70,31 @@ function connectMqtt() {
 connectMqtt();
 
 // --- Configuration injection logic ---
+// Currently no env vars needed by the frontend as everything is proxied
 function injectConfig() {
-  const envVars = {
-    API_URL: process.env['API_URL'] || ''
-  };
-
-  console.log('Injecting configuration into JS files...');
+  console.log('Checking for JS files for configuration injection...');
   
   const findJsFiles = (dir: string): string[] => {
     let results: string[] = [];
-    if (!statSync(dir).isDirectory()) return results;
-    const list = readdirSync(dir);
-    list.forEach(file => {
-      const filePath = join(dir, file);
-      const stat = statSync(filePath);
-      if (stat && stat.isDirectory()) {
-        results = results.concat(findJsFiles(filePath));
-      } else if (file.endsWith('.js')) {
-        results.push(filePath);
-      }
-    });
+    try {
+      if (!statSync(dir).isDirectory()) return results;
+      const list = readdirSync(dir);
+      list.forEach(file => {
+        const filePath = join(dir, file);
+        const stat = statSync(filePath);
+        if (stat && stat.isDirectory()) {
+          results = results.concat(findJsFiles(filePath));
+        } else if (file.endsWith('.js')) {
+          results.push(filePath);
+        }
+      });
+    } catch (e) {
+      // Directory might not exist yet
+    }
     return results;
   };
 
-  try {
-    if (statSync(distPath).isDirectory()) {
-      const files = findJsFiles(distPath);
-      files.forEach(file => {
-        let content = readFileSync(file, 'utf8');
-        let changed = false;
-
-        Object.entries(envVars).forEach(([key, value]) => {
-          const placeholder = `PLACEHOLDER_${key}`;
-          if (content.includes(placeholder)) {
-            content = content.split(placeholder).join(value);
-            changed = true;
-          }
-        });
-
-        if (changed) {
-          writeFileSync(file, content, 'utf8');
-          console.log(`Injected config into ${file}`);
-        }
-      });
-    }
-  } catch (err) {
-    console.error('Error during configuration injection:', err);
-  }
+  // No placeholders to replace currently, but keeping the structure for future needs
 }
 
 // Inject config at startup
@@ -128,7 +107,7 @@ app.get('/api/mqtt/status', (req, res) => {
   res.json({ status: mqttStatus });
 });
 
-// Publish MQTT message (topic is handled on the server)
+// Publish MQTT message
 app.post('/api/mqtt/publish', (req, res) => {
   const { message } = req.body;
   
@@ -148,6 +127,21 @@ app.post('/api/mqtt/publish', (req, res) => {
     });
   } else {
     res.status(503).json({ error: 'MQTT client not connected' });
+  }
+});
+
+// Proxy Jobs API
+app.get('/api/jobs', async (req, res) => {
+  try {
+    const response = await fetch(apiUrl);
+    if (!response.ok) {
+      throw new Error(`External API responded with status: ${response.status}`);
+    }
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching jobs from external API:', error);
+    res.status(502).json({ error: 'Failed to fetch jobs from backend API' });
   }
 });
 

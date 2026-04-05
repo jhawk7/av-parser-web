@@ -1,7 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { CONFIG } from './config';
 
 export interface Job {
   id: string;
@@ -22,6 +21,7 @@ export class JobsService {
   private http = inject(HttpClient);
 
   getJobs(): Observable<JobResponse> {
-    return this.http.get<JobResponse>(CONFIG.apiUrl);
+    // Use the local proxied API instead of the direct external API
+    return this.http.get<JobResponse>('/api/jobs');
   }
 }

@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MqttService } from './mqtt.service';
 import { JobsService, Job } from './jobs.service';
-import { CONFIG } from './config';
 
 @Component({
   selector: 'app-root',
