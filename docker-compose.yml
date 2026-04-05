@@ -17,4 +17,3 @@ services:
       - MQTT_TOPIC=${MQTT_TOPIC}
       - API_URL=${API_URL}
     restart: unless-stopped
-    user: "101"

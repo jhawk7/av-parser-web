@@ -1,10 +1,10 @@
 export const CONFIG = {
   "mqtt": {
-    "url": "ws://localhost:1833/mqtt",
-    "clientId": "av-parser-web-dev",
-    "username": "",
-    "password": "",
-    "topic": "yt-parser/jobs"
+    "url": "PLACEHOLDER_MQTT_URL",
+    "clientId": "PLACEHOLDER_MQTT_CLIENT_ID",
+    "username": "PLACEHOLDER_MQTT_USER",
+    "password": "PLACEHOLDER_MQTT_PASSWORD",
+    "topic": "PLACEHOLDER_MQTT_TOPIC"
   },
-  "apiUrl": "http://localhost:3000/api/jobs"
+  "apiUrl": "PLACEHOLDER_API_URL"
 };
