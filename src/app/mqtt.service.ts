@@ -1,70 +1,44 @@
-import { Injectable, signal } from '@angular/core';
-import mqtt, { MqttClient, IClientOptions } from 'mqtt';
-import { CONFIG } from './config';
+import { Injectable, signal, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { interval, startWith, switchMap, catchError, of } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class MqttService {
-  private client: MqttClient | null = null;
+  private http = inject(HttpClient);
   public status = signal<'connected' | 'disconnected' | 'connecting'>('disconnected');
 
   constructor() {
-    this.connect();
+    this.startPollingStatus();
   }
 
-  private connect() {
-    this.status.set('connecting');
-    
-    const options: IClientOptions = {
-      clientId: CONFIG.mqtt.clientId,
-      clean: true,
-      connectTimeout: 4000,
-      reconnectPeriod: 1000,
-    };
-
-    if (CONFIG.mqtt.username) {
-      options.username = CONFIG.mqtt.username;
-    }
-    if (CONFIG.mqtt.password) {
-      options.password = CONFIG.mqtt.password;
-    }
-    
-    try {
-      this.client = mqtt.connect(CONFIG.mqtt.url, options);
-
-      this.client.on('connect', () => {
-        console.log('Connected to MQTT broker');
-        this.status.set('connected');
+  private startPollingStatus() {
+    // Poll the status every 5 seconds
+    interval(5000)
+      .pipe(
+        startWith(0),
+        switchMap(() => this.http.get<{ status: 'connected' | 'disconnected' | 'connecting' }>('/api/mqtt/status')),
+        catchError(() => of({ status: 'disconnected' as const }))
+      )
+      .subscribe((response) => {
+        this.status.set(response.status);
       });
-
-      this.client.on('error', (err) => {
-        console.error('MQTT connection error:', err);
-        this.status.set('disconnected');
-      });
-
-      this.client.on('close', () => {
-        console.log('MQTT connection closed');
-        this.status.set('disconnected');
-      });
-    } catch (error) {
-      console.error('Failed to initiate MQTT connection:', error);
-      this.status.set('disconnected');
-    }
   }
 
-  public publish(topic: string, message: any) {
-    if (this.client && this.status() === 'connected') {
-      const payload = JSON.stringify(message);
-      this.client.publish(topic, payload, { qos: 2 }, (error) => {
-        if (error) {
-          console.error('Failed to publish message:', error);
-        } else {
-          console.log('Published message to topic:', topic);
-        }
-      });
+  public publish(message: any) {
+    if (this.status() === 'connected') {
+      this.http.post('/api/mqtt/publish', { message })
+        .subscribe({
+          next: () => {
+            console.log('Published message via server');
+          },
+          error: (err) => {
+            console.error('Failed to publish message via server:', err);
+          }
+        });
     } else {
-      console.error('Cannot publish: MQTT client not connected');
+      console.error('Cannot publish: MQTT server client not connected');
     }
   }
 }

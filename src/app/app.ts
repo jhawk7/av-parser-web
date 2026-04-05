@@ -69,7 +69,7 @@ export class App implements OnInit {
         type: this.parseType,
       };
 
-      this.mqtt.publish(CONFIG.mqtt.topic, payload);
+      this.mqtt.publish(payload);
       
       this.lastMessage.set('Sent');
       this.isSubmitting.set(false);
