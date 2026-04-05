@@ -2,7 +2,8 @@ services:
   web:
     build:
       context: .
-    image: jhawk7/av-parser-web:latest
+    image: jhawk7/av-parser-web:arm64
+    #image: jhawk7/av-parser-web:amd64
     container_name: av-parser-web
     ports:
       - "8080:8080"
