@@ -21,26 +21,27 @@ ENV DOCKER_BUILD=true
 # Build the application
 RUN pnpm build
 
-# Stage 2: Serve (Non-Root)
-FROM nginxinc/nginx-unprivileged:alpine
+# Stage 2: Serve
+FROM node:22-slim
 
-# Copy built files from Stage 1
-COPY --from=build /app/dist/av-parser-web/browser /usr/share/nginx/html
+# Install pnpm (needed to run serve:dist)
+RUN npm install -g pnpm
 
-# Copy custom nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+WORKDIR /app
+# Change the ownership of the /app directory to the node user
+RUN chown node:node /app
 
-# Copy the entrypoint script
-COPY entrypoint.sh /entrypoint.sh
+# Copy built application and server code
+# We use --chown to ensure the files are owned by the node user
+COPY --from=build --chown=node:node /app/dist /app/dist
+COPY --from=build --chown=node:node /app/package.json /app/pnpm-lock.yaml /app/server.ts /app/tsconfig.json ./
 
-# Use root temporarily to set permissions
-USER root
-RUN chmod +x /entrypoint.sh && \
-    chown -R 101:101 /usr/share/nginx/html
-USER 101
+# Install production dependencies only as the node user
+USER node
+RUN pnpm install --prod --frozen-lockfile
 
-# The unprivileged image listens on 8080 by default
+# The app listens on 8080 by default
 EXPOSE 8080
 
-# Use the entrypoint script to inject config at runtime
-ENTRYPOINT ["/entrypoint.sh"]
+# Start the Node.js server
+CMD ["pnpm", "run", "serve:dist"]
