@@ -125,6 +125,15 @@ p { color: #666; margin-bottom: 24px; transition: color 0.3s; }
   -webkit-tap-highlight-color: transparent;
 }
 
+.history-toggle:hover,
+.history-toggle:active,
+.history-toggle:focus {
+  background: transparent !important;
+  color: #339af0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 .history-dropdown {
   margin-top: 10px;
   padding: 15px;
