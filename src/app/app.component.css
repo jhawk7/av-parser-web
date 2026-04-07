@@ -120,6 +120,9 @@ p { color: #666; margin-bottom: 24px; transition: color 0.3s; }
   gap: 8px;
   padding: 0;
   font-size: 14px;
+  outline: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .history-dropdown {
