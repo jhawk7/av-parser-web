@@ -19,7 +19,7 @@ export class App implements OnInit {
   parseType: 'video' | 'audio' = 'video';
   isSubmitting = signal(false);
   lastMessage = signal<string | null>(null);
-  isDarkMode = signal(false);
+  isDarkMode = signal(true);
   
   // Jobs history
   jobs = signal<Job[]>([]);
