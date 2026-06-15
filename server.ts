@@ -108,7 +108,7 @@ app.get('/api/mqtt/status', (req, res) => {
 });
 
 // Publish MQTT message
-app.post('/api/mqtt/publish', (req, res) => {
+app.post('/api/mqtt/publish', (req, res): any => {
   const { message } = req.body;
   
   if (!message) {
@@ -123,10 +123,10 @@ app.post('/api/mqtt/publish', (req, res) => {
         return res.status(500).json({ error: 'Failed to publish message' });
       }
       console.log(`Published message to topic: ${mqttTopic}`);
-      res.json({ success: true });
+      return res.json({ success: true });
     });
   } else {
-    res.status(503).json({ error: 'MQTT client not connected' });
+    return res.status(503).json({ error: 'MQTT client not connected' });
   }
 });
 
