@@ -16,7 +16,7 @@ export class App implements OnInit {
   private readonly jobsService = inject(JobsService);
   
   url = '';
-  parseType: 'video' | 'audio' = 'video';
+  parseType: 'video' | 'audio' | 'both' = 'video';
   isSubmitting = signal(false);
   lastMessage = signal<string | null>(null);
   isDarkMode = signal(true);

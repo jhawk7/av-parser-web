@@ -5,7 +5,7 @@ import { Observable } from 'rxjs';
 export interface Job {
   id: string;
   url: string;
-  type: 'video' | 'audio';
+  type: 'video' | 'audio' | 'both';
   status: 'pending' | 'completed' | 'failed';
   timestamp: string;
 }
