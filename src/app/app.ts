@@ -2,7 +2,7 @@ import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MqttService } from './mqtt.service';
-import { JobsService, Job } from './jobs.service';
+import { JobsService, Job, JobMap } from './jobs.service';
 
 @Component({
   selector: 'app-root',
@@ -14,13 +14,14 @@ import { JobsService, Job } from './jobs.service';
 export class App implements OnInit {
   protected readonly mqtt = inject(MqttService);
   private readonly jobsService = inject(JobsService);
-  
+
   url = '';
   parseType: 'video' | 'audio' | 'both' = 'video';
   isSubmitting = signal(false);
   lastMessage = signal<string | null>(null);
   isDarkMode = signal(true);
-  
+  isUpdatingJobs = signal(false);
+
   // Jobs history
   jobs = signal<Job[]>([]);
   isLoadingJobs = signal(false);
@@ -44,6 +45,28 @@ export class App implements OnInit {
     });
   }
 
+  fetchJobUpdates() {
+    // This call triggers/ensures SSE connection is initialized via service-level lazy init
+    this.jobsService.getUpdatedJobs().subscribe({
+      next: (data) => {
+        const jobMap: JobMap = {};
+        this.jobs().forEach(job => {
+          jobMap[job.id] = job;
+        });
+
+        data.response.forEach(updatedJob => {
+          jobMap[updatedJob.id] = updatedJob;
+        });
+
+        // Sort jobs by newest timestamp
+        this.jobs.set(Object.values(jobMap).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+      },
+      error: (err) => {
+        console.error('Failed to fetch job updates:', err);
+      }
+    });
+  }
+
   toggleTheme() {
     this.isDarkMode.update(dark => !dark);
   }
@@ -56,7 +79,7 @@ export class App implements OnInit {
   }
 
   isValidUrl(): boolean {
-    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/;
+    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+\$/;
     return youtubeRegex.test(this.url);
   }
 
@@ -69,18 +92,21 @@ export class App implements OnInit {
       };
 
       this.mqtt.publish(payload);
-      
+
       this.lastMessage.set('Sent');
       this.isSubmitting.set(false);
-      
+
       // Clear message after 3 seconds
       setTimeout(() => this.lastMessage.set(null), 3000);
-      
-      // Clear URL
+
+      // Clear URL immediately so user can submit again
       this.url = '';
-      
-      // Refresh jobs list after a short delay
-      setTimeout(() => this.fetchJobs(), 2000);
+
+      // Wait 2s for backend to process job, then start live SSE updates
+      setTimeout(() => {
+        this.fetchJobs(); // Populate jobs list from DB first
+        this.fetchJobUpdates(); // Start tracking via SSE with single connection shared
+      }, 2000);
     }
   }
 }
