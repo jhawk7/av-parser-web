@@ -10,7 +10,7 @@ dotenv.config();
 const app = express();
 const port = process.env['PORT'] || 8080;
 const distPath = join(process.cwd(), 'dist/av-parser-web/browser');
-const apiUrl = process.env['API_URL'] || 'http://localhost:3000/api/jobs';
+const apiUrl = process.env['API_URL'] || 'http://localhost:3000/jobs';
 
 app.use(cors());
 app.use(express.json());
@@ -146,7 +146,7 @@ app.get('/api/jobs', async (req, res) => {
 });
 
 // Proxy SSE stream from backend
-const sseApiUrl = process.env['SSE_API_URL'] || apiUrl.replace('/api/jobs', '/api/stream/jobs');
+const sseApiUrl = process.env['SSE_API_URL'] || apiUrl.replace('/jobs', '/stream/jobs');
 app.get('/api/stream/jobs', async (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
