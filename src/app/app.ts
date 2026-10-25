@@ -79,7 +79,7 @@ export class App implements OnInit {
   }
 
   isValidUrl(): boolean {
-    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+\$/;
+    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/;
     return youtubeRegex.test(this.url);
   }
 
