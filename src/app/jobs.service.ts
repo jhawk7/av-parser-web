@@ -74,7 +74,7 @@ export class JobsService {
     // Attach handler once per connection
     (this.eventSourceRef as any).onmessage = handleMessage;
     (this.eventSourceRef as any).onopen = () => {};
-    (this.eventSourceRef as any).error = handleError;
+    this.eventSourceRef.onerror = handleError;
 
     this.initialized = true;
   }

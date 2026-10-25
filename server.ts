@@ -145,6 +145,54 @@ app.get('/api/jobs', async (req, res) => {
   }
 });
 
+// Proxy SSE stream from backend
+const sseApiUrl = process.env['SSE_API_URL'] || apiUrl.replace('/api/jobs', '/api/stream/jobs');
+app.get('/api/stream/jobs', async (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  let upstream: any = null;
+  try {
+    const response = await fetch(sseApiUrl, {
+      headers: { Accept: 'text/event-stream' },
+    });
+
+    if (!response.ok || !response.body) {
+      res.write(`data: ${JSON.stringify({ error: 'Upstream SSE unavailable' })}\n\n`);
+      res.end();
+      return;
+    }
+
+    upstream = response.body;
+    const reader = (response.body as any).getReader();
+    const decoder = new TextDecoder();
+
+    const pump = async () => {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        res.write(decoder.decode(value, { stream: true }));
+      }
+      res.end();
+    };
+
+    pump().catch((err: Error) => {
+      console.error('SSE proxy stream error:', err);
+      res.end();
+    });
+
+    req.on('close', () => {
+      reader.cancel();
+    });
+  } catch (error) {
+    console.error('Error proxying SSE stream:', error);
+    res.write(`data: ${JSON.stringify({ error: 'Failed to connect to SSE stream' })}\n\n`);
+    res.end();
+  }
+});
+
 // Serve static files
 app.use(express.static(distPath));
 
