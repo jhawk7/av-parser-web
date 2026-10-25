@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject, of } from 'rxjs';
+import { Observable, BehaviorSubject, filter } from 'rxjs';
 
 export interface Job {
   id: string;
@@ -40,7 +40,8 @@ export class JobsService {
   getUpdatedJobs(): Observable<JobResponse> {
     // Lazy init on first subscriber
     this.ensureSSE();
-    return this.sseStream$.asObservable();
+    // Filter out the null seed value so subscribers only receive real SSE data
+    return this.sseStream$.asObservable().pipe(filter((v): v is JobResponse => v !== null));
   }
 
   /**
@@ -67,6 +68,8 @@ export class JobsService {
       console.error('SSE connection error');
       if (this.eventSourceRef) {
         this.eventSourceRef.close();
+        this.eventSourceRef = null;
+        this.initialized = false; // Allow ensureSSE() to create a new connection
         setTimeout(() => this.ensureSSE(), 3000);
       }
     };
