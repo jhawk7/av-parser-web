@@ -2,6 +2,7 @@ import { Component, signal, inject, OnInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subscription } from 'rxjs';
 import { MqttService } from './mqtt.service';
 import { JobsService, Job, JobMap } from './jobs.service';
 
@@ -16,6 +17,8 @@ export class App implements OnInit {
   protected readonly mqtt = inject(MqttService);
   private readonly jobsService = inject(JobsService);
   private readonly destroyRef = inject(DestroyRef);
+  private sseSubscription: Subscription | null = null;
+  private observedPendingJob = false;
 
   url = '';
   parseType: 'video' | 'audio' | 'both' = 'video';
@@ -31,15 +34,21 @@ export class App implements OnInit {
 
   ngOnInit() {
     this.fetchJobs();
-    this.subscribeToJobUpdates();
   }
 
   fetchJobs() {
     this.isLoadingJobs.set(true);
     this.jobsService.getJobs().subscribe({
       next: (data) => {
-        this.jobs.set(data.response || []);
+        const jobList = data.response || [];
+        this.jobs.set(jobList);
         this.isLoadingJobs.set(false);
+
+        // If there are pending jobs, track their updates
+        if (jobList.some(job => job.status === 'pending')) {
+          this.observedPendingJob = true;
+          this.startJobUpdates();
+        }
       },
       error: (err) => {
         console.error('Failed to fetch jobs:', err);
@@ -48,8 +57,14 @@ export class App implements OnInit {
     });
   }
 
-  subscribeToJobUpdates() {
-    this.jobsService.getUpdatedJobs()
+  startJobUpdates() {
+    if (this.sseSubscription && !this.sseSubscription.closed) {
+      return;
+    }
+
+    this.isUpdatingJobs.set(true);
+
+    this.sseSubscription = this.jobsService.getUpdatedJobs()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => {
@@ -70,12 +85,33 @@ export class App implements OnInit {
           });
 
           // Sort jobs by newest timestamp
-          this.jobs.set(Object.values(jobMap).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+          const updatedJobsList = Object.values(jobMap).sort(
+            (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
+          this.jobs.set(updatedJobsList);
+
+          const hasPending = updatedJobsList.some(job => job.status === 'pending');
+          if (hasPending) {
+            this.observedPendingJob = true;
+          } else if (this.observedPendingJob && !hasPending) {
+            // All previously pending jobs have finished; close SSE connection
+            this.stopJobUpdates();
+            this.observedPendingJob = false;
+          }
         },
         error: (err) => {
           console.error('Failed to fetch job updates:', err);
+          this.stopJobUpdates();
         }
       });
+  }
+
+  stopJobUpdates() {
+    if (this.sseSubscription) {
+      this.sseSubscription.unsubscribe();
+      this.sseSubscription = null;
+    }
+    this.isUpdatingJobs.set(false);
   }
 
   toggleTheme() {
@@ -113,9 +149,13 @@ export class App implements OnInit {
       // Clear URL immediately so user can submit again
       this.url = '';
 
-      // Wait 2s for backend to process job, then refresh jobs list
+      // Mark that we are expecting a pending job from this submission
+      this.observedPendingJob = true;
+
+      // Wait 2s for backend to process job, then refresh jobs list and start live SSE updates
       setTimeout(() => {
-        this.fetchJobs(); // Populate jobs list from DB; live SSE continues tracking updates
+        this.fetchJobs();
+        this.startJobUpdates();
       }, 2000);
     }
   }
