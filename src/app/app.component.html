@@ -33,7 +33,7 @@
             placeholder="https://www.youtube.com/watch?v=..."
             #urlInput="ngModel"
           />
-          @if (urlInput.touched && !isValidUrl()) {
+          @if (urlInput.touched && url.length > 0&& !isValidUrl()) {
             <small class="error-text">Please enter a valid YouTube URL.</small>
           }
         </div>

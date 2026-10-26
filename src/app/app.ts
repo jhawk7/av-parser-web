@@ -156,6 +156,7 @@ export class App implements OnInit {
       setTimeout(() => {
         this.fetchJobs();
         this.startJobUpdates();
+        this.showHistory.set(true);
       }, 2000);
     }
   }
