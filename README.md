@@ -6,7 +6,7 @@ A simple Angular standalone application that allows users to submit YouTube URLs
 - **YouTube URL Validation**: Ensures only valid links are submitted.
 - **Processing Options**: Choose between Video or Audio parsing.
 - **MQTT Integration**: Publishes jobs directly to a broker.
-- **Job History**: View recent and current jobs with status tracking.
+- **Job History**: View recent and current jobs with live status tracking.
 - **Dark Mode**: Fully responsive UI with a sleek dark theme toggle.
 - **Dockerized**: Ready for containerized deployment with runtime configuration.
 
@@ -30,6 +30,7 @@ MQTT_USER=
 MQTT_PASSWORD=
 MQTT_TOPIC=
 API_URL=
+SSE_API_URL=
 ```
 
 > **Note**: For browser compatibility, `MQTT_URL` must use the WebSocket protocol (`ws://` or `wss://`).
