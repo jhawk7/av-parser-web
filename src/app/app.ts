@@ -1,6 +1,7 @@
-import { Component, signal, inject, OnInit } from '@angular/core';
+import { Component, signal, inject, OnInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MqttService } from './mqtt.service';
 import { JobsService, Job, JobMap } from './jobs.service';
 
@@ -14,6 +15,7 @@ import { JobsService, Job, JobMap } from './jobs.service';
 export class App implements OnInit {
   protected readonly mqtt = inject(MqttService);
   private readonly jobsService = inject(JobsService);
+  private readonly destroyRef = inject(DestroyRef);
 
   url = '';
   parseType: 'video' | 'audio' | 'both' = 'video';
@@ -29,13 +31,14 @@ export class App implements OnInit {
 
   ngOnInit() {
     this.fetchJobs();
+    this.subscribeToJobUpdates();
   }
 
   fetchJobs() {
     this.isLoadingJobs.set(true);
     this.jobsService.getJobs().subscribe({
       next: (data) => {
-        this.jobs.set(data.response);
+        this.jobs.set(data.response || []);
         this.isLoadingJobs.set(false);
       },
       error: (err) => {
@@ -45,26 +48,34 @@ export class App implements OnInit {
     });
   }
 
-  fetchJobUpdates() {
-    // This call triggers/ensures SSE connection is initialized via service-level lazy init
-    this.jobsService.getUpdatedJobs().subscribe({
-      next: (data) => {
-        const jobMap: JobMap = {};
-        this.jobs().forEach(job => {
-          jobMap[job.id] = job;
-        });
+  subscribeToJobUpdates() {
+    this.jobsService.getUpdatedJobs()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (data) => {
+          if (!data?.response || !Array.isArray(data.response)) {
+            if (data?.error) {
+              console.warn('SSE received error from upstream:', data.error);
+            }
+            return;
+          }
 
-        data.response.forEach(updatedJob => {
-          jobMap[updatedJob.id] = updatedJob;
-        });
+          const jobMap: JobMap = {};
+          this.jobs().forEach(job => {
+            jobMap[job.id] = job;
+          });
 
-        // Sort jobs by newest timestamp
-        this.jobs.set(Object.values(jobMap).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
-      },
-      error: (err) => {
-        console.error('Failed to fetch job updates:', err);
-      }
-    });
+          data.response.forEach(updatedJob => {
+            jobMap[updatedJob.id] = updatedJob;
+          });
+
+          // Sort jobs by newest timestamp
+          this.jobs.set(Object.values(jobMap).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+        },
+        error: (err) => {
+          console.error('Failed to fetch job updates:', err);
+        }
+      });
   }
 
   toggleTheme() {
@@ -102,10 +113,9 @@ export class App implements OnInit {
       // Clear URL immediately so user can submit again
       this.url = '';
 
-      // Wait 2s for backend to process job, then start live SSE updates
+      // Wait 2s for backend to process job, then refresh jobs list
       setTimeout(() => {
-        this.fetchJobs(); // Populate jobs list from DB first
-        this.fetchJobUpdates(); // Start tracking via SSE with single connection shared
+        this.fetchJobs(); // Populate jobs list from DB; live SSE continues tracking updates
       }, 2000);
     }
   }

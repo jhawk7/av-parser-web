@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject, filter } from 'rxjs';
+import { Observable, share } from 'rxjs';
 
 export interface Job {
   id: string;
@@ -12,7 +12,8 @@ export interface Job {
 }
 
 export interface JobResponse {
-  response: Job[];
+  response?: Job[];
+  error?: string;
 }
 
 export interface JobMap {
@@ -24,61 +25,51 @@ export interface JobMap {
 })
 export class JobsService {
   private client = inject(HttpClient);
-
-  // Single EventSource shared via BehaviorSubject
-  private sseStream$: BehaviorSubject<JobResponse> = new BehaviorSubject<JobResponse>(null as any);
-  private eventSourceRef: EventSource | null = null;
-  private initialized = false;
+  private jobsStream$: Observable<JobResponse> | null = null;
 
   getJobs(): Observable<JobResponse> {
     return this.client.get<JobResponse>('/api/jobs');
   }
 
   /**
-   * Get live SSE updates. First subscription initializes connection; subsequent ones share it.
+   * Get live SSE updates. Automatically connects on first subscription and
+   * gracefully closes the EventSource when all subscribers unsubscribe.
    */
   getUpdatedJobs(): Observable<JobResponse> {
-    // Lazy init on first subscriber
-    this.ensureSSE();
-    // Filter out the null seed value so subscribers only receive real SSE data
-    return this.sseStream$.asObservable().pipe(filter((v): v is JobResponse => v !== null));
-  }
+    if (!this.jobsStream$) {
+      this.jobsStream$ = new Observable<JobResponse>((subscriber) => {
+        const eventSource = new EventSource('/api/stream/jobs');
 
-  /**
-   * Initialize EventSource once, attach handler broadcast to all subscribers.
-   */
-  private ensureSSE(): void {
-    if (this.initialized) return;
+        eventSource.onmessage = (event: MessageEvent) => {
+          try {
+            const data: JobResponse = JSON.parse(event.data);
+            subscriber.next(data);
+          } catch (e) {
+            console.error('Failed to parse SSE message:', e);
+          }
+        };
 
-    this.eventSourceRef = new EventSource('/api/stream/jobs');
+        eventSource.onerror = (err) => {
+          // EventSource will auto-reconnect if readyState is CONNECTING (0).
+          // Only notify error if connection is permanently CLOSED (2).
+          if (eventSource.readyState === EventSource.CLOSED) {
+            console.error('SSE connection permanently closed');
+            subscriber.error(err);
+          }
+        };
 
-    const closeAll = () => {}; // Keep alive for multiple subscribers
+        return () => {
+          eventSource.close();
+        };
+      }).pipe(
+        share({
+          resetOnRefCountZero: true,
+          resetOnError: true,
+          resetOnComplete: true,
+        })
+      );
+    }
 
-    // Handler broadcasts updates to BehaviorSubject (shared by all subs)
-    const handleMessage = (event: MessageEvent) => {
-      try {
-        const data: JobResponse = JSON.parse(event.data);
-        this.sseStream$.next(data);
-      } catch (e) {
-        console.error('Failed to parse SSE message:', e);
-      }
-    };
-
-    const handleError = () => {
-      console.error('SSE connection error');
-      if (this.eventSourceRef) {
-        this.eventSourceRef.close();
-        this.eventSourceRef = null;
-        this.initialized = false; // Allow ensureSSE() to create a new connection
-        setTimeout(() => this.ensureSSE(), 3000);
-      }
-    };
-
-    // Attach handler once per connection
-    (this.eventSourceRef as any).onmessage = handleMessage;
-    (this.eventSourceRef as any).onopen = () => {};
-    this.eventSourceRef.onerror = handleError;
-
-    this.initialized = true;
+    return this.jobsStream$;
   }
 }

@@ -11,7 +11,7 @@ dotenv.config();
 const app = (0, express_1.default)();
 const port = process.env['PORT'] || 8080;
 const distPath = (0, path_1.join)(process.cwd(), 'dist/av-parser-web/browser');
-const apiUrl = process.env['API_URL'] || 'http://localhost:3000/api/jobs';
+const apiUrl = process.env['API_URL'] || 'http://localhost:3000/jobs';
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
 // --- MQTT Connection Handling ---
@@ -128,6 +128,59 @@ app.get('/api/jobs', async (req, res) => {
     catch (error) {
         console.error('Error fetching jobs from external API:', error);
         res.status(502).json({ error: 'Failed to fetch jobs from backend API' });
+    }
+});
+// Proxy SSE stream from backend
+const sseApiUrl = process.env['SSE_API_URL'] || apiUrl.replace('/jobs', '/stream/jobs');
+app.get('/api/stream/jobs', async (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+    let reader = null;
+    try {
+        const response = await fetch(sseApiUrl, {
+            headers: { Accept: 'text/event-stream' },
+        });
+        if (!response.ok || !response.body) {
+            if (!res.writableEnded) {
+                res.write(`data: ${JSON.stringify({ error: 'Upstream SSE unavailable' })}\n\n`);
+                res.end();
+            }
+            return;
+        }
+        reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        const pump = async () => {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done || res.writableEnded)
+                    break;
+                res.write(decoder.decode(value, { stream: true }));
+            }
+            if (!res.writableEnded) {
+                res.end();
+            }
+        };
+        pump().catch((err) => {
+            console.error('SSE proxy stream error:', err);
+            if (!res.writableEnded) {
+                res.end();
+            }
+        });
+        req.on('close', () => {
+            if (reader) {
+                reader.cancel().catch(() => { });
+            }
+        });
+    }
+    catch (error) {
+        console.error('Error proxying SSE stream:', error);
+        if (!res.writableEnded) {
+            res.write(`data: ${JSON.stringify({ error: 'Failed to connect to SSE stream' })}\n\n`);
+            res.end();
+        }
     }
 });
 // Serve static files
